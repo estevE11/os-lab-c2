@@ -8,7 +8,6 @@
 #include <time.h>
 
 #define PIPE_NAME "/tmp/myfifo"
-#define BUFF_SIZE 8
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -29,32 +28,37 @@ int main(int argc, char *argv[]) {
     }
 
     if (pid == 0) { // child process
+        printf("Child begins (pid = %u)\n", pid);
         for (int i = 0; i < iterations; i++)
         {
             int fd = open(PIPE_NAME, O_RDONLY);
 
             int val;
             read(fd, &val, sizeof(val));
-            printf("child: %u\n", val);
+            printf("%u: child: %u\n", i, val);
 
             close(fd);
         }
+        printf("Child ends (pid = %u)\n", pid);
         exit(EXIT_SUCCESS);
     } else { // parent process
-        for (int i = 0; i < iterations; i++) {
+        printf("Parent beings (pid = %u)\n", pid);
+        for (int i = 0; i < iterations; i++)
+        {
+            printf("Parent iteration %u (pid = %u)\n", i, pid);
             srand(time(NULL)); // seed the random number generator
 
             int fd = open(PIPE_NAME, O_WRONLY);
 
             int rand_val = i;
             write(fd, &rand_val, sizeof(rand_val));
-
-            printf("parent: %u\n", rand_val);
+            printf("parent: %u\n", i, rand_val);
 
             close(fd);
         }
-        //wait(NULL);
+        wait(NULL);
 
+        printf("Parent ends (pid = %u)\n", pid);
         exit(EXIT_SUCCESS);
     }
 }
