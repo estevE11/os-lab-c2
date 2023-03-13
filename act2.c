@@ -1,65 +1,59 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
-#include <sys/wait.h>
+#include <sys/stat.h>
+#include <time.h>
 
-int main()
-{
-    int pipefd[2];
-    pid_t cpid;
-    char buffer[10];
+#define PIPE_NAME "/tmp/myfifo"
+#define BUFF_SIZE 8
 
-    // create pipe
-    if (pipe(pipefd) == -1)
-    {
-        perror("pipe");
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <iterations>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    int pipe_read = pipefd[0];
-    int pipe_write = pipefd[1];
+    int iterations = atoi(argv[1]);
 
-    // fork child process
-    cpid = fork();
+    // create named pipe
+    mkfifo(PIPE_NAME, 0666);
 
-    if (cpid == -1)
-    {
+    pid_t pid = fork();
+
+    if (pid == -1) {
         perror("fork");
         exit(EXIT_FAILURE);
     }
 
-    if (cpid == 0)
-    {                     // child process
-        close(pipe_write); // close unused write end of the pipe
-
-        // read 3 integers from the pipe
-        int num;
-        for (int i = 0; i < 3; i++)
+    if (pid == 0) { // child process
+        for (int i = 0; i < iterations; i++)
         {
-            read(pipe_read, &num, sizeof(num));
-            printf("Child received number %d\n", num);
+            int fd = open(PIPE_NAME, O_RDONLY);
+
+            int val;
+            read(fd, &val, sizeof(val));
+            printf("child: %u\n", val);
+
+            close(fd);
         }
+        exit(EXIT_SUCCESS);
+    } else { // parent process
+        for (int i = 0; i < iterations; i++) {
+            srand(time(NULL)); // seed the random number generator
 
-        close(pipe_read); // close read end of the pipe
-        _exit(EXIT_SUCCESS);
-    }
-    else
-    {                     // parent process
-        close(pipe_read); // close unused read end of the pipe
+            int fd = open(PIPE_NAME, O_WRONLY);
 
-        // generate 3 random integers and send to the child process
-        for (int i = 0; i < 3; i++)
-        {
-            int num = rand() % 100;
-            printf("Parent sent number %d\n", num);
-            write(pipe_write, &num, sizeof(num));
+            int rand_val = i;
+            write(fd, &rand_val, sizeof(rand_val));
+
+            printf("parent: %u\n", rand_val);
+
+            close(fd);
         }
-
-        close(pipe_write); // close write end of the pipe
-
-        // wait for child process to terminate
-        wait(NULL);
+        //wait(NULL);
 
         exit(EXIT_SUCCESS);
     }
