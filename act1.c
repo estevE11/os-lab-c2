@@ -58,8 +58,10 @@ int main()
     if (pid == 0) { // child process
         while (*shared_mem > 0) {
             sem_wait(sem1);  // wait for parent's turn
-            (*shared_mem)--; // decrement shared memory value
-            printf("Child process decremented shared memory to %d\n", *shared_mem);
+            if (*shared_mem > 0) {
+                (*shared_mem)--; // decrement shared memory value
+                printf("Child process decremented shared memory to %d\n", *shared_mem);
+            }
             sem_post(sem2); // signal parent's turn
         }
         exit(0);
