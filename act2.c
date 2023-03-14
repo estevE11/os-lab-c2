@@ -34,8 +34,9 @@ int main(int argc, char *argv[]) {
             int fd = open(PIPE_NAME, O_RDONLY);
 
             int val;
+            printf("child:");
             read(fd, &val, sizeof(val));
-            printf("%u: child: %u\n", i, val);
+            printf("%u\n", val);
 
             close(fd);
         }
@@ -51,8 +52,9 @@ int main(int argc, char *argv[]) {
             int fd = open(PIPE_NAME, O_WRONLY);
 
             int rand_val = i;
+            printf("parent: ");
             write(fd, &rand_val, sizeof(rand_val));
-            printf("parent: %u\n", i, rand_val);
+            printf("%u\n", rand_val);
 
             close(fd);
         }
