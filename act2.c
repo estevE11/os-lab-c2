@@ -10,10 +10,8 @@
 uint8_t operand1, operand2;
 char operation;
 
-void parent(int pipefd[2], int iterations)
-{
-    for (int i = 0; i < iterations; i++)
-    {
+void parent(int pipefd[2], int iterations) {
+    for (int i = 0; i < iterations; i++) {
         // Generate random operands and operation
         operand1 = rand() % 101;
         operand2 = rand() % 101;
@@ -46,10 +44,8 @@ void parent(int pipefd[2], int iterations)
     }
 }
 
-void child(int pipefd[2], int iterations)
-{
-    for (int i = 0; i < iterations; i++)
-    {
+void child(int pipefd[2], int iterations) {
+    for (int i = 0; i < iterations; i++) {
         uint8_t op1, op2;
         char op;
 
@@ -84,17 +80,14 @@ void child(int pipefd[2], int iterations)
     }
 }
 
-int main(int argc, char *argv[])
-{
-    if (argc != 2)
-    {
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
         fprintf(stderr, "Usage: %s <iterations>\n", argv[0]);
         return 1;
     }
 
     int iterations = atoi(argv[1]);
-    if (iterations <= 0)
-    {
+    if (iterations <= 0) {
         fprintf(stderr, "Invalid number of iterations.\n");
         return 1;
     }
@@ -102,8 +95,7 @@ int main(int argc, char *argv[])
     srand(time(NULL));
 
     int pipefd[2];
-    if (pipe(pipefd) == -1)
-    {
+    if (pipe(pipefd) == -1) {
         perror("pipe");
         return 1;
     }
@@ -111,20 +103,16 @@ int main(int argc, char *argv[])
     printf("main: created pipe.\n");
 
     int pid = fork();
-    if (pid == -1)
-    {
+    if (pid == -1) {
         perror("fork");
         return 1;
     }
 
-    if (pid == 0)
-    {
+    if (pid == 0) {
         printf("child (pid = %d) begins.\n", getpid());
         child(pipefd, iterations);
         printf("child (pid = %d) ends.\n", getpid());
-    }
-    else
-    {
+    } else {
         printf("main: open pipe for read/write.\n");
         printf("parent (pid = %d) begins.\n", getpid());
         parent(pipefd, iterations);
