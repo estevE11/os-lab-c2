@@ -3,62 +3,133 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <time.h>
 
-#define PIPE_NAME "/tmp/myfifo"
+#define PIPE_NAME "mypipe"
 
-int main(int argc, char *argv[]) {
-    if (argc != 2) {
+uint8_t operand1, operand2;
+char operation;
+
+void parent(int pipefd[2], int iterations)
+{
+    for (int i = 0; i < iterations; i++)
+    {
+        // Generate random operands and operation
+        operand1 = rand() % 101;
+        operand2 = rand() % 101;
+        switch (rand() % 4)
+        {
+        case 0:
+            operation = '+';
+            break;
+        case 1:
+            operation = '-';
+            break;
+        case 2:
+            operation = '*';
+            break;
+        case 3:
+            operation = '/';
+            break;
+        }
+
+        printf("parent (pid = %d): iteration %d.\n", getpid(), i);
+
+        // Write operands and operation to pipe
+        write(pipefd[1], &operand1, sizeof(operand1));
+        write(pipefd[1], &operation, sizeof(operation));
+        write(pipefd[1], &operand2, sizeof(operand2));
+
+        printf("parent (pid = %d): %d %c %d = ?\n", getpid(), operand1, operation, operand2);
+        
+        sleep(1);
+    }
+}
+
+void child(int pipefd[2], int iterations)
+{
+    for (int i = 0; i < iterations; i++)
+    {
+        uint8_t op1, op2;
+        char op;
+
+        // Read operands and operation from pipe
+        read(pipefd[0], &op1, sizeof(op1));
+        read(pipefd[0], &op, sizeof(op));
+        read(pipefd[0], &op2, sizeof(op2));
+
+        printf("child (pid = %d): %d %c %d = ", getpid(), op1, op, op2);
+
+        // Perform mathematical operation
+        uint8_t result;
+        switch (op)
+        {
+        case '+':
+            result = op1 + op2;
+            break;
+        case '-':
+            result = op1 - op2;
+            break;
+        case '*':
+            result = op1 * op2;
+            break;
+        case '/':
+            result = op1 / op2;
+            break;
+        }
+
+        printf("%d\n", result);
+
+        sleep(1);
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc != 2)
+    {
         fprintf(stderr, "Usage: %s <iterations>\n", argv[0]);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     int iterations = atoi(argv[1]);
+    if (iterations <= 0)
+    {
+        fprintf(stderr, "Invalid number of iterations.\n");
+        return 1;
+    }
 
-    // create named pipe
-    mkfifo(PIPE_NAME, 0666);
+    srand(time(NULL));
 
-    pid_t pid = fork();
+    int pipefd[2];
+    if (pipe(pipefd) == -1)
+    {
+        perror("pipe");
+        return 1;
+    }
 
-    if (pid == -1) {
+    printf("main: created pipe.\n");
+
+    int pid = fork();
+    if (pid == -1)
+    {
         perror("fork");
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
-    if (pid == 0) { // child process
-        printf("Child begins (pid = %u)\n", pid);
-        for (int i = 0; i < iterations; i++)
-        {
-            int fd = open(PIPE_NAME, O_RDONLY);
-
-            int val;
-            read(fd, &val, sizeof(val));
-            printf("%u: child: %u\n", i, val);
-
-            close(fd);
-        }
-        printf("Child ends (pid = %u)\n", pid);
-        exit(EXIT_SUCCESS);
-    } else { // parent process
-        printf("Parent beings (pid = %u)\n", pid);
-        for (int i = 0; i < iterations; i++)
-        {
-            printf("Parent iteration %u (pid = %u)\n", i, pid);
-            srand(time(NULL)); // seed the random number generator
-
-            int fd = open(PIPE_NAME, O_WRONLY);
-
-            int rand_val = i;
-            write(fd, &rand_val, sizeof(rand_val));
-            printf("parent: %u\n", i, rand_val);
-
-            close(fd);
-        }
-        wait(NULL);
-
-        printf("Parent ends (pid = %u)\n", pid);
-        exit(EXIT_SUCCESS);
+    if (pid == 0)
+    {
+        printf("child (pid = %d) begins.\n", getpid());
+        child(pipefd, iterations);
+        printf("child (pid = %d) ends.\n", getpid());
     }
+    else
+    {
+        printf("main: open pipe for read/write.\n");
+        printf("parent (pid = %d) begins.\n", getpid());
+        parent(pipefd, iterations);
+        printf("parent (pid = %d) ends.\n", getpid());
+    }
+
+    return 0;
 }
