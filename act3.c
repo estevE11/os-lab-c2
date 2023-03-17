@@ -19,7 +19,6 @@ void *thread_1(void *arg) {
         (*thread_data.data_ptr)--;
         printf("thread1 bounce %u\n", *thread_data.data_ptr);
         pthread_mutex_unlock(thread_data.mutex1);
-        sleep(1);
     }
     return NULL;
 }
@@ -32,7 +31,6 @@ void *thread_2(void *arg) {
         (*thread_data.data_ptr)--;
         printf("thread2 bounce %u\n", *thread_data.data_ptr);
         pthread_mutex_unlock(thread_data.mutex1);
-        sleep(1);
     }
     return NULL;
 }

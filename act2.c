@@ -39,8 +39,6 @@ void parent(int pipefd[2], int iterations) {
         write(pipefd[1], &operand2, sizeof(operand2));
 
         printf("parent (pid = %d): %d %c %d = ?\n", getpid(), operand1, operation, operand2);
-        
-        sleep(1);
     }
 }
 
@@ -75,8 +73,6 @@ void child(int pipefd[2], int iterations) {
         }
 
         printf("%d\n", result);
-
-        sleep(1);
     }
 }
 
