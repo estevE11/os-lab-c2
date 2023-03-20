@@ -10,7 +10,7 @@
 uint8_t operand1, operand2;
 char operation;
 
-void parent(int pipefd[2], int iterations) {
+void parent(int pipefd[2], int pipefd_conf[2], int iterations) {
     for (int i = 0; i < iterations; i++) {
         // Generate random operands and operation
         operand1 = rand() % 101;
@@ -38,11 +38,15 @@ void parent(int pipefd[2], int iterations) {
         write(pipefd[1], &operation, sizeof(operation));
         write(pipefd[1], &operand2, sizeof(operand2));
 
+
         printf("parent (pid = %d): %d %c %d = ?\n", getpid(), operand1, operation, operand2);
+
+        int res = 0;
+        read(pipefd_conf[0], &res, sizeof(res));
     }
 }
 
-void child(int pipefd[2], int iterations) {
+void child(int pipefd[2], int pipefd_conf[2], int iterations) {
     for (int i = 0; i < iterations; i++) {
         uint8_t op1, op2;
         char op;
@@ -73,6 +77,9 @@ void child(int pipefd[2], int iterations) {
         }
 
         printf("%d\n", result);
+
+        int res = 1;
+        write(pipefd_conf[1], &res, sizeof(res));
     }
 }
 
@@ -96,6 +103,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    int pipefd_conf[2];
+    if (pipe(pipefd_conf) == -1) {
+        perror("pipe");
+        return 1;
+    }
+
     printf("main: created pipe.\n");
 
     int pid = fork();
@@ -106,12 +119,12 @@ int main(int argc, char *argv[]) {
 
     if (pid == 0) {
         printf("child (pid = %d) begins.\n", getpid());
-        child(pipefd, iterations);
+        child(pipefd, pipefd_conf, iterations);
         printf("child (pid = %d) ends.\n", getpid());
     } else {
         printf("main: open pipe for read/write.\n");
         printf("parent (pid = %d) begins.\n", getpid());
-        parent(pipefd, iterations);
+        parent(pipefd, pipefd_conf, iterations);
         printf("parent (pid = %d) ends.\n", getpid());
     }
 
